@@ -1,0 +1,7 @@
+{
+    "interface" : "eth0",
+    "servername" : "",
+    "webhook_url" : "",
+    "mbit_threshold" : "",
+    "cooldown" : "150"
+}
