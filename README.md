@@ -9,13 +9,13 @@
 
   # Installation
 
-    **#Ubuntu and Debian based distribution**
+    #Ubuntu and Debian based distribution
     apt install tcpdump python3 python3-pip screen -y
-    **#Centos/Rhel based distributions**
+    #Centos/Rhel based distributions
     yum install tcpdump python3 python3-pip screen -y
   
     git clone https://github.com/Dexxor/Traffic-Monitor.git
     cd Traffic-Monitor
     pip3 install -r requirments.txt
-    **Edit config.json to your liking**
+    #Edit config.json to your liking
     screen python3 trafficmonitor.py
