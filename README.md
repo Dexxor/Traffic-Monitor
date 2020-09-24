@@ -7,7 +7,7 @@
   * datetime
   * discord_webhook
 
-  S# Installation
+  # Installation
 
     **#Ubuntu and Debian based distribution**
     apt install tcpdump python3 python3-pip screen -y
