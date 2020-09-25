@@ -16,6 +16,6 @@
   
     git clone https://github.com/Dexxor/Traffic-Monitor.git
     cd Traffic-Monitor
-    pip3 install -r requirments.txt
+    pip3 install -r requirements.txt
     #Edit config.json to your liking
     screen python3 trafficmonitor.py
