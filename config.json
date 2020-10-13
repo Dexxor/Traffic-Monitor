@@ -1,5 +1,5 @@
 {
-    "interface" : "eth0",
+    "interface" : "",
     "servername" : "",
     "webhook_url" : "",
     "mbit_threshold" : "",
