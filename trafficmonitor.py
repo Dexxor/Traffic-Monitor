@@ -1,7 +1,7 @@
 import time, sys, os, subprocess, datetime, json
 from discord_webhook import DiscordWebhook, DiscordEmbed
-with open('config.json') as config_file:
-    data = json.load(config_file)
+data = json.load(open('config.json'))
+
 webhook_url = data['webhook_url']
 mbit_threshold = data['mbit_threshold']
 cooldown = data['cooldown']
@@ -70,9 +70,14 @@ while True:
     if int(pullincoming('mbits')) > int(mbit_threshold):
         print("Under Attack!")
         time.sleep(2)
-        send_webhook(pullincoming('fulloutput'), f"{pullincomingpackets()}", f"{datetime.datetime.now()}.pcap")
-        os.system("tcpdump -n -s0 -c 5000 -w '%s.pcap'"%(datetime.datetime.now()))
-        time.sleep(int(cooldown))
+
+        if int(pullincoming('mbits')) > int(mbit_threshold):
+            send_webhook(pullincoming('fulloutput'), f"{pullincomingpackets()}", f"{datetime.datetime.now()}.pcap")
+            os.system("tcpdump -n -s0 -c 5000 -w '%s.pcap'"%(datetime.datetime.now()))
+            time.sleep(int(cooldown))
+        else:
+            print('False positive.')
+
         if int(pullincoming('mbits')) > int(mbit_threshold):
             print("Attack not over yet!")
             time.sleep(150)
