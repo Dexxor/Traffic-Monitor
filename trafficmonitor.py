@@ -28,7 +28,7 @@ def getsizeint(B):
          elif TB <= B:
                return '{0:.2f} TB'.format(B/TB)
 
-def send_webhook_attack(attacksize, pps, pcapname):
+def attack(attacksize, pps, pcapname):
         try:
             webhook = DiscordWebhook(url=webhook_url)
             embed = DiscordEmbed(title='Attack Detected', description='Method has been Dumped!', color=242424)
@@ -41,7 +41,7 @@ def send_webhook_attack(attacksize, pps, pcapname):
         except:
             print("Looks like they downed us")
             
-def send_webhook_attack_over():
+def attackOver():
         try:
             webhook = DiscordWebhook(url=webhook_url)
             embed = DiscordEmbed(title='Attack no longer detected', color=242424)
@@ -54,7 +54,7 @@ def send_webhook_attack_over():
 def pcap():
     os.system("tcpdump -i {} -n -s0 -c 5000 -w '{}.pcap'".format(interface,datetime.datetime.now()))
 
-def pullincoming(request):
+def pullIncoming(request):
     if request == 'mbits':
         old = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_bytes"%interface)
         time.sleep(0.25)
@@ -70,7 +70,7 @@ def pullincoming(request):
         current_incoming_data = getsizeint(current_incoming_bytes)
         return current_incoming_data
         
-def pullincomingpackets():
+def pullIncomingPackets():
     oldpkt = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_packets"%interface)
     time.sleep(0.25)
     newpkt = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_packets"%interface)
@@ -81,15 +81,15 @@ underattack = False
 
 while True:            
     os.system("clear")
-    print("Packets: %s" % pullincomingpackets())
-    print("Incoming: %s" % pullincoming('fulloutput'))
-    if underattack == False and (((int(pullincoming('mbits')) > int(threshold)) and not pps) or ((int(pullincomingpackets()) > int(threshold)) and pps)):
+    print("Packets: %s" % pullIncomingPackets())
+    print("Incoming: %s" % pullIncoming('fulloutput'))
+    if underattack == False and (((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps)):
         print("Under Attack!")
         underattack = True
         time.sleep(1)
 
-        if ((int(pullincoming('mbits')) > int(threshold)) and not pps) or ((int(pullincomingpackets()) > int(threshold)) and pps):
-            send = threading.Thread(target=send_webhook_attack(pullincoming('fulloutput'), f"{pullincomingpackets()}", f"{datetime.datetime.now()}.pcap"))
+        if ((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps):
+            send = threading.Thread(target=attack(pullIncoming('fulloutput'), f"{pullIncomingPackets()}", f"{datetime.datetime.now()}.pcap"))
             send.start()
             pcap()
             time.sleep(int(cooldown))
@@ -97,12 +97,12 @@ while True:
             print('False positive.')
             underattack = False
         
-    if underattack == True and (((int(pullincoming('mbits')) > int(threshold)) and not pps) or ((int(pullincomingpackets()) > int(threshold)) and pps)):
+    if underattack == True and (((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps)):
         print("Attack not over yet!")
         time.sleep(int(cooldown))
         continue
     elif underattack == True:
         print('Attack Over!')
         underattack = False
-        send_webhook_attack_over()
+        attackOver()
             
