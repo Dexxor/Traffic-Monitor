@@ -1,16 +1,16 @@
-import time, sys, os, subprocess, datetime, json
+import time, sys, os, subprocess, datetime, json, threading
 from discord_webhook import DiscordWebhook, DiscordEmbed
 data = json.load(open('config.json'))
 
 webhook_url = data['webhook_url']
-mbit_threshold = data['mbit_threshold']
+threshold = data['threshold']
 cooldown = data['cooldown']
 server = data['servername']
+pps = data['pps']
 interface = data['interface']
 
-while True:
 
-    def getsizeint(B):
+def getsizeint(B):
          B = float(B)
          KB = float(125)
          MB = float(125000)
@@ -27,8 +27,9 @@ while True:
             return '{0:.2f} GB'.format(B/GB)
          elif TB <= B:
                return '{0:.2f} TB'.format(B/TB)
-            
-    def send_webhook(attacksize, pps, pcapname):
+
+def attack(attacksize, pps, pcapname):
+        try:
             webhook = DiscordWebhook(url=webhook_url)
             embed = DiscordEmbed(title='Attack Detected', description='Method has been Dumped!', color=242424)
             embed.add_embed_field(name="Server", value=server, inline=False)
@@ -36,52 +37,72 @@ while True:
             embed.add_embed_field(name='Size', value=attacksize, inline=False)
             embed.add_embed_field(name="Peak Packets Per Second", value=pps, inline=False)
             webhook.add_embed(embed)
-            response = webhook.execute() 
+            webhook.execute()
+        except:
+            print("Looks like they downed us")
             
-    
-    def pullincoming(request):
-        if request == 'mbits':
-            old = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $1}'"%interface)
-            time.sleep(1)
-            new = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $1}'"%interface)
-            current_incoming_bytes = int(new) - int(old)
-            current_incoming_mbits = current_incoming_bytes / int(125000)
-            return current_incoming_mbits
-        elif request == 'fulloutput':
-            old = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $1}'"%interface)
-            time.sleep(1)
-            new = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $1}'"%interface)
-            current_incoming_bytes = int(new) - int(old)
-            current_incoming_data = getsizeint(current_incoming_bytes)
-            return current_incoming_data
-            
-    def pullincomingpackets():
-        oldpkt = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $2}'"%interface)
-        time.sleep(1)
-        newpkt = subprocess.getoutput("grep %s: /proc/net/dev | cut -d : -f2 | awk '{print $2}'"%interface)
-        current_incoming_packets = int(newpkt) - int(oldpkt)
-        return current_incoming_packets
+def attackOver():
+        try:
+            webhook = DiscordWebhook(url=webhook_url)
+            embed = DiscordEmbed(title='Attack no longer detected', color=242424)
+            embed.add_embed_field(name="Server", value=server, inline=False)
+            webhook.add_embed(embed)
+            webhook.execute() 
+        except:
+            print("Unable to send end notification for some reason ?!?")
 
+def pcap():
+    os.system("tcpdump -i {} -n -s0 -c 5000 -w '{}.pcap'".format(interface,datetime.datetime.now()))
+
+def pullIncoming(request):
+    if request == 'mbits':
+        old = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_bytes"%interface)
+        time.sleep(0.25)
+        new = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_bytes"%interface)
+        current_incoming_bytes = (int(new) - int(old)) * 4
+        current_incoming_mbits = current_incoming_bytes / int(125000)
+        return current_incoming_mbits
+    elif request == 'fulloutput':
+        old = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_bytes"%interface)
+        time.sleep(0.25)
+        new = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_bytes"%interface)
+        current_incoming_bytes = (int(new) - int(old)) * 4
+        current_incoming_data = getsizeint(current_incoming_bytes)
+        return current_incoming_data
+        
+def pullIncomingPackets():
+    oldpkt = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_packets"%interface)
+    time.sleep(0.25)
+    newpkt = subprocess.getoutput("cat /sys/class/net/%s/statistics/rx_packets"%interface)
+    current_incoming_packets = (int(newpkt) - int(oldpkt)) * 4
+    return current_incoming_packets
+
+underattack = False
+
+while True:            
     os.system("clear")
-
-    print("Packets: %s" % pullincomingpackets())
-    print("Incoming: %s" % pullincoming('fulloutput'))
-    
-    if int(pullincoming('mbits')) > int(mbit_threshold):
+    print("Packets: %s" % pullIncomingPackets())
+    print("Incoming: %s" % pullIncoming('fulloutput'))
+    if underattack == False and (((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps)):
         print("Under Attack!")
-        time.sleep(2)
+        underattack = True
+        time.sleep(1)
 
-        if int(pullincoming('mbits')) > int(mbit_threshold):
-            send_webhook(pullincoming('fulloutput'), f"{pullincomingpackets()}", f"{datetime.datetime.now()}.pcap")
-            os.system("tcpdump -n -s0 -c 5000 -w '%s.pcap'"%(datetime.datetime.now()))
+        if ((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps):
+            send = threading.Thread(target=attack(pullIncoming('fulloutput'), f"{pullIncomingPackets()}", f"{datetime.datetime.now()}.pcap"))
+            send.start()
+            pcap()
             time.sleep(int(cooldown))
         else:
             print('False positive.')
-
-        if int(pullincoming('mbits')) > int(mbit_threshold):
-            print("Attack not over yet!")
-            time.sleep(150)
-        else:
-            print('Attack Over!')
+            underattack = False
         
-time.sleep(1)
+    if underattack == True and (((int(pullIncoming('mbits')) > int(threshold)) and not pps) or ((int(pullIncomingPackets()) > int(threshold)) and pps)):
+        print("Attack not over yet!")
+        time.sleep(int(cooldown))
+        continue
+    elif underattack == True:
+        print('Attack Over!')
+        underattack = False
+        attackOver()
+            

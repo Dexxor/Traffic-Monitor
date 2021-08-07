@@ -1,6 +1,6 @@
   # Traffic-Monitor
 
-  Traffic Monitor is a basic python script that monitors incoming packets and incoming traffic all together and once the threshold has been passed for example there are 8 Mbit/s     incoming but the threshold is 5 Mbit/s it will trigger the script and alert you over discord aswell as save a pcap for you to view the attack later.
+  Traffic Monitor is a basic python script that monitors incoming packets and incoming traffic all together and once the threshold has been passed for example there are 8 Mbit/s or 8000pps (Depending on if pps is true or not in the config )    incoming but the threshold is 5 Mbit/s or 500pps it will trigger the script and alert you over discord aswell as save a pcap for you to view the attack later.
 
   # Requirements
   * tcpdump

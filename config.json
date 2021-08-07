@@ -2,6 +2,7 @@
     "interface" : "",
     "servername" : "",
     "webhook_url" : "",
-    "mbit_threshold" : "",
-    "cooldown" : "150"
+    "threshold" : "1000",
+    "pps" : true,
+    "cooldown" : "30"
 }
